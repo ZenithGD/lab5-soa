@@ -25,6 +25,9 @@ const val COUNT_ROUTE = "direct:extractor"
 const val LOG_ROUTE = "direct:log"
 const val INDEX_VIEW = "index"
 
+const val PREFIX_LENGTH = 4
+const val DEFAULT_MSG_LIMIT = 5
+
 @Controller
 class SearchController(private val producerTemplate: ProducerTemplate) {
     @RequestMapping("/")
@@ -49,9 +52,8 @@ class Router(meterRegistry: MeterRegistry) : RouteBuilder() {
                     .partition { it.startsWith("max:") }
                 exchange.getIn().setHeader("keywords", keywordsList.joinToString(" "))
 
-                val max = maxList.firstOrNull()?.drop(4)?.toIntOrNull() ?: 5
+                val max = maxList.firstOrNull()?.drop(PREFIX_LENGTH)?.toIntOrNull() ?: DEFAULT_MSG_LIMIT
                 exchange.getIn().setHeader("count", max)
-
             }
             .toD("twitter-search:\${header.keywords}?count=\${header.count}")
             .wireTap(LOG_ROUTE)
