@@ -26,9 +26,12 @@ dependencies {
     implementation("org.apache.camel.springboot:camel-spring-boot-starter:3.18.1")
     implementation("org.apache.camel.springboot:camel-twitter-starter:3.16.0")
     implementation("org.apache.camel:camel-gson:3.19.0")
+    implementation("org.springframework.boot:spring-boot-starter-data-jpa:2.7.5")
+    implementation("org.springframework.boot:spring-boot-starter-jdbc:2.7.5")
+    implementation("com.h2database:h2:2.1.214")
+    implementation("org.apache.camel.springboot:camel-spring-jdbc-starter:3.18.1")
     implementation("org.webjars.bowergithub.twbs:bootstrap:3.3.7")
     implementation("org.webjars.bowergithub.janl:mustache.js:3.0.1")
-
     detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.21.0")
 }
 

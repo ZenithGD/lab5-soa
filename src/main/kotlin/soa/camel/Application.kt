@@ -1,10 +1,12 @@
 package soa.camel
 
+import com.google.gson.Gson
 import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.MeterRegistry
 import org.apache.camel.ProducerTemplate
 import org.apache.camel.builder.RouteBuilder
 import org.apache.camel.model.dataformat.JsonLibrary
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 import org.springframework.stereotype.Component
@@ -12,6 +14,7 @@ import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseBody
+
 
 @SpringBootApplication
 class Application
@@ -23,6 +26,7 @@ fun main(vararg args: String) {
 const val DIRECT_ROUTE = "direct:twitter"
 const val COUNT_ROUTE = "direct:extractor"
 const val LOG_ROUTE = "direct:log"
+const val DB_ROUTE = "direct:db"
 const val INDEX_VIEW = "index"
 
 const val PREFIX_LENGTH = 4
@@ -58,6 +62,7 @@ class Router(meterRegistry: MeterRegistry) : RouteBuilder() {
             .toD("twitter-search:\${header.keywords}?count=\${header.count}")
             .wireTap(LOG_ROUTE)
             .wireTap(COUNT_ROUTE)
+            .wireTap(DB_ROUTE)
 
         from(LOG_ROUTE)
             .marshal().json(JsonLibrary.Gson)
@@ -69,6 +74,21 @@ class Router(meterRegistry: MeterRegistry) : RouteBuilder() {
                 val keyword = exchange.getIn().getHeader("keywords") as? String
                 keyword?.split(" ")?.map { perKeywordMessages.increment(it) }
             }
+
+        from(DB_ROUTE)
+            .split(body())
+            .process { exchange ->
+                val gson = Gson()
+                val jsonStr = gson.toJson(exchange.getIn().body)
+
+                exchange.getIn().setHeader("hashCode", jsonStr.hashCode())
+                exchange.getIn().body = jsonStr
+            }
+            .setBody(simple("insert into tweetdata values('\${date:now:yyyy/MM/dd/HH-mm-ss.SSS}', '\${body}')"))
+            .to("jdbc:dataSource");
+
+        // Note: I had to manually generate the id, because it seems that H2 doesn't auto increment the
+        // generated id. Choosing another DB engine might solve this issue.
     }
 }
 
